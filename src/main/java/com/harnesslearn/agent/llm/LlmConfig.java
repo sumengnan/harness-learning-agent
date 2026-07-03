@@ -30,4 +30,14 @@ public class LlmConfig {
             .timeout(Duration.ofSeconds(60))
             .build();
     }
+
+    @Bean
+    public dev.langchain4j.model.embedding.EmbeddingModel embeddingModel() {
+        return new dev.langchain4j.model.embedding.onnx.bgesmallzh.BgeSmallZhEmbeddingModel();
+    }
+
+    @Bean
+    public dev.langchain4j.store.embedding.EmbeddingStore<dev.langchain4j.data.segment.TextSegment> embeddingStore() {
+        return new dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore<>();
+    }
 }
