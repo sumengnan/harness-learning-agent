@@ -8,6 +8,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 基于 LLM 单次调用的独立验证器。
@@ -32,7 +33,7 @@ public class LlmL5Evaluator implements L5Evaluator {
 
     @Override
     public Verdict verify(TaskSpec task, AgentOutput output, List<Artifact> evidence) {
-        String evidenceText = evidence.stream().map(Artifact::content).reduce("", (a, b) -> a + "\n---\n" + b);
+        String evidenceText = evidence.stream().map(Artifact::content).collect(Collectors.joining("\n---\n"));
         String prompt = "任务: " + task.userQuery() + "\n\n【产出】\n" + output.content()
             + "\n\n【证据】\n" + evidenceText;
         String json = model.generate(List.of(SystemMessage.from(CRITIC), UserMessage.from(prompt)),
@@ -45,6 +46,7 @@ public class LlmL5Evaluator implements L5Evaluator {
      *
      * <p>契约：解析失败保守判为不通过（pass=false, confidence=0），
      * 并附一条 format 维度的 issue，交由 L6 处置。
+     * critic JSON 缺 confidence 字段时默认 0.5（中性置信度）。
      */
     private Verdict parse(String json) {
         try {

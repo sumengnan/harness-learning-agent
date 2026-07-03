@@ -22,4 +22,17 @@ class LlmL5EvaluatorTest {
         assertThat(v.confidence()).isEqualTo(0.6);
         assertThat(v.issues()).extracting(Issue::dimension).containsExactly("grounding");
     }
+
+    @Test
+    void failsClosedWhenOutputNotParseable() {
+        var fake = FakeChatModel.scripted(AiMessage.from("抱歉，我无法完成评估。"));
+        var evaluator = new LlmL5Evaluator(fake);
+        Verdict v = evaluator.verify(
+            new TaskSpec("run1", TaskType.SURVEY, "综述", java.util.Map.of()),
+            new AgentOutput("正文…", List.of()),
+            List.of(new Artifact("a","run1","summary","k","证据…", java.util.Map.of())));
+        assertThat(v.pass()).isFalse();
+        assertThat(v.confidence()).isEqualTo(0.0);
+        assertThat(v.issues()).extracting(Issue::dimension).containsExactly("format");
+    }
 }
