@@ -30,6 +30,9 @@ public class SqliteArtifactStore implements ArtifactStore {
         try { return mapper.writeValueAsString(m == null ? Map.of() : m); }
         catch (Exception e) { throw new IllegalStateException(e); }
     }
+    // 假设：meta 列里只存 String 值——由 Artifact.meta（Map<String,String>）的编译期泛型
+    // 约束保证，正常经 put()/query() 往返时成立。若有绕过 put() 的写入（如直接写库）塞入
+    // 非 String 值，此处强转不会立刻报错，而是在调用方读取该值赋给 String 时抛 ClassCastException。
     @SuppressWarnings("unchecked")
     private Map<String,String> readJson(String s) {
         try { return mapper.readValue(s, Map.class); }
