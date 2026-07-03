@@ -8,6 +8,7 @@ import dev.langchain4j.model.output.Response;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 可编排返回序列的假模型；用于确定性测试自主循环。
@@ -21,7 +22,7 @@ import java.util.List;
  */
 public class FakeChatModel implements ChatLanguageModel {
     private final Deque<AiMessage> scripted;
-    private int calls = 0;
+    private final AtomicInteger calls = new AtomicInteger(0);
 
     private FakeChatModel(List<AiMessage> messages) {
         this.scripted = new ArrayDeque<>(messages);
@@ -37,13 +38,16 @@ public class FakeChatModel implements ChatLanguageModel {
     }
 
     @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecs) {
-        calls++;
-        AiMessage next = scripted.isEmpty() ? AiMessage.from("[no more scripted responses]") : scripted.poll();
+    public synchronized Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecs) {
+        calls.incrementAndGet();
+        AiMessage next = scripted.poll();
+        if (next == null) {
+            next = AiMessage.from("[no more scripted responses]");
+        }
         return Response.from(next);
     }
 
     public int callCount() {
-        return calls;
+        return calls.get();
     }
 }
