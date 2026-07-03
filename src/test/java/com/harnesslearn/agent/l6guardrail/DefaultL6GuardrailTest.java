@@ -29,4 +29,16 @@ class DefaultL6GuardrailTest {
         RecoveryDecision d = g.onFailure(new FailureContext("verification_failed", 1, ""));
         assertThat(d.strategy()).isEqualTo(RecoveryStrategy.RETRY);
     }
+
+    @Test
+    void validateActionAcceptsValidCall() {
+        ValidationResult r = g.validateAction(new ToolCall("1", "local_retrieve", "{\"query\":\"x\"}"));
+        assertThat(r.valid()).isTrue();
+    }
+
+    @Test
+    void validateOutputAcceptsNonEmpty() {
+        ValidationResult r = g.validateOutput(new AgentOutput("正文内容", java.util.List.of()));
+        assertThat(r.valid()).isTrue();
+    }
 }
