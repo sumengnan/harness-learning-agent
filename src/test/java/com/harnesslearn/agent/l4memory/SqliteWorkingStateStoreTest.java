@@ -3,12 +3,12 @@ package com.harnesslearn.agent.l4memory;
 import com.harnesslearn.agent.domain.WorkingState;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SqliteWorkingStateStoreTest {
     private JdbcTemplate memoryJdbc() {
-        var ds = new DriverManagerDataSource("jdbc:sqlite:file:memdb_ws?mode=memory&cache=shared");
+        var ds = new org.springframework.jdbc.datasource.SingleConnectionDataSource(
+            "jdbc:sqlite:file:memdb_ws?mode=memory&cache=shared", true);
         ds.setDriverClassName("org.sqlite.JDBC");
         JdbcTemplate jt = new JdbcTemplate(ds);
         new SchemaInitializer(jt).init();
