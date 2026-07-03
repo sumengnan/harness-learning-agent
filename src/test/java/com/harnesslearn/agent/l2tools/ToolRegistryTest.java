@@ -27,4 +27,10 @@ class ToolRegistryTest {
         var reg = new ToolRegistry(List.of());
         assertThatThrownBy(() -> reg.get("nope")).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void duplicateToolNameThrows() {
+        assertThatThrownBy(() -> new ToolRegistry(List.of(new EchoTool(), new EchoTool())))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }
