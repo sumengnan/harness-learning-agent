@@ -2,6 +2,7 @@ package com.harnesslearn.agent.l4memory;
 
 import com.harnesslearn.agent.domain.MemoryItem;
 import com.harnesslearn.agent.domain.RetrievedChunk;
+import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -19,8 +20,7 @@ public class VectorLongTermMemory implements LongTermMemory {
 
     @Override
     public void remember(MemoryItem item) {
-        TextSegment seg = TextSegment.from(item.text(),
-            dev.langchain4j.data.document.Metadata.from(item.meta()));
+        TextSegment seg = TextSegment.from(item.text(), Metadata.from(item.meta()));
         store.add(embed.embed(seg).content(), seg);
     }
 
@@ -29,6 +29,8 @@ public class VectorLongTermMemory implements LongTermMemory {
         Embedding q = embed.embed(query).content();
         var req = EmbeddingSearchRequest.builder().queryEmbedding(q).maxResults(k).build();
         return store.search(req).matches().stream()
+            // id 仅为本次检索结果内的临时标识，非稳定主键、与底层存储的 segment 无关联：
+            // 同一 segment 在不同 retrieve 调用中会得到不同 id，调用方不要用它做跨调用去重/引用。
             .map(m -> new RetrievedChunk(
                 UUID.randomUUID().toString(),
                 m.embedded().metadata().getString("uri"),

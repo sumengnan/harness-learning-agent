@@ -21,5 +21,6 @@ class VectorLongTermMemoryTest {
         List<RetrievedChunk> hits = mem.retrieve("如何做上下文裁剪", 1);
         assertThat(hits).hasSize(1);
         assertThat(hits.get(0).text()).contains("上下文工程");
+        assertThat(hits.get(0).sourceUri()).isEqualTo("doc1");
     }
 }
