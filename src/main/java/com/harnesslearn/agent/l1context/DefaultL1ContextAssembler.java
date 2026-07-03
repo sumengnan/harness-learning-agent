@@ -9,7 +9,10 @@ import java.util.List;
 
 public class DefaultL1ContextAssembler implements L1ContextAssembler {
     private final int maxInfo;
-    public DefaultL1ContextAssembler(int maxInfo) { this.maxInfo = maxInfo; }
+    public DefaultL1ContextAssembler(int maxInfo) {
+        if (maxInfo < 0) throw new IllegalArgumentException("maxInfo 不能为负: " + maxInfo);
+        this.maxInfo = maxInfo;
+    }
 
     @Override
     public AssembledContext assemble(TaskSpec task, WorkingState state, List<RetrievedChunk> candidates) {
@@ -28,7 +31,7 @@ public class DefaultL1ContextAssembler implements L1ContextAssembler {
             .sorted(Comparator.comparingDouble(RetrievedChunk::relevanceScore).reversed())
             .limit(maxInfo)
             .map(c -> "- [来源 %s] %s".formatted(c.sourceUri(), c.text()))
-            .reduce("## 相关资料\n", (a, b) -> a + b + "\n");
+            .collect(java.util.stream.Collectors.joining("\n", "## 相关资料\n", "\n"));
 
         List<ChatMessage> messages = List.of(
             SystemMessage.from(SystemPrompts.ROLE),
