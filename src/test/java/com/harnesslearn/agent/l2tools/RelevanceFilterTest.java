@@ -25,5 +25,13 @@ class RelevanceFilterTest {
         RelevanceFilter.Result res = filter.filter(in);
         assertThat(res.kept()).extracting(RetrievedChunk::id).containsExactly("a");
         assertThat(res.droppedCount()).isEqualTo(2);
+
+        // 正向路径：两条都相关且互不重复 → 全保留、droppedCount=0（复用同一 embed/filter，不再加载 ONNX）
+        List<RetrievedChunk> allRelevant = List.of(
+            new RetrievedChunk("d","u4","agent 的工具编排与调用策略",0),
+            new RetrievedChunk("e","u5","上下文工程与自主决策循环的设计",0));
+        RelevanceFilter.Result pos = filter.filter(allRelevant);
+        assertThat(pos.kept()).extracting(RetrievedChunk::id).containsExactly("d","e");
+        assertThat(pos.droppedCount()).isEqualTo(0);
     }
 }

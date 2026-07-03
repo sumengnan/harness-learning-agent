@@ -11,16 +11,25 @@ public class RelevanceFilter {
 
     private final EmbeddingModel embed;
     private final float[] centroid;
+    /** 低于即剔除的「对领域质心余弦」阈值 τ。 */
     private final double threshold;    // τ
+    /** 与任一已保留向量余弦 ≥ 此值即判为重复丢弃。 */
     private final double dedupSim = 0.97;
 
     // borderlineDelta：预留给未来 τ±δ 边界复判的 LLM 二分类，本版靠阈值单闸，暂不接线
     public RelevanceFilter(EmbeddingModel embed, List<String> anchors, double threshold, double borderlineDelta) {
+        if (anchors.isEmpty()) throw new IllegalArgumentException("anchors 不能为空");
         this.embed = embed;
         this.threshold = threshold;
         this.centroid = mean(anchors.stream().map(a -> embed.embed(a).content().vector()).toList());
     }
 
+    /**
+     * 相关性闸门 + 去重。注意语义：保留项的 {@code relevanceScore} 被替换为其
+     * <b>对领域质心的余弦相关度</b>（大致 ∈ [τ,1]），<b>而非入参的原始 score</b>。
+     * 下游（如 DefaultL1ContextAssembler 按 relevanceScore 降序取 top-N）依赖此含义。
+     * 返回的 {@code Result.kept} 是不可变副本。
+     */
     public Result filter(List<RetrievedChunk> chunks) {
         List<RetrievedChunk> kept = new ArrayList<>();
         List<float[]> keptVecs = new ArrayList<>();
@@ -34,7 +43,7 @@ public class RelevanceFilter {
             kept.add(new RetrievedChunk(c.id(), c.sourceUri(), c.text(), rel));
             keptVecs.add(v);
         }
-        return new Result(kept, dropped);
+        return new Result(List.copyOf(kept), dropped);
     }
 
     private static float[] mean(List<float[]> vs) {
