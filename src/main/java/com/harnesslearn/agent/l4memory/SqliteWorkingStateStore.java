@@ -5,6 +5,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * WorkingState 的 SQLite 持久化。
+ *
+ * <p>列表字段（completed_steps / open_questions）以换行符 {@code \n} join 后存入单个 TEXT 列。
+ * 这依赖一个前提：单条步骤描述 / 开放问题内**不含**内嵌换行——由 L3 编排层保证。
+ * 若违反该前提，{@link #load} 会把一条记录静默拆成多条，造成数据损坏。
+ */
 public class SqliteWorkingStateStore implements WorkingStateStore {
     private final JdbcTemplate jdbc;
     public SqliteWorkingStateStore(JdbcTemplate jdbc) { this.jdbc = jdbc; }
