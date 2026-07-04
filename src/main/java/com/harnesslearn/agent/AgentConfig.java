@@ -20,8 +20,11 @@ import com.harnesslearn.agent.l5eval.LlmL5Evaluator;
 import com.harnesslearn.agent.l6guardrail.DefaultL6Guardrail;
 import com.harnesslearn.agent.l6guardrail.L6Guardrail;
 import com.harnesslearn.agent.l6guardrail.RecoveryPolicy;
+import com.harnesslearn.agent.observability.CompositeTraceStore;
 import com.harnesslearn.agent.observability.LoggingChatModelListener;
+import com.harnesslearn.agent.observability.RunEventBus;
 import com.harnesslearn.agent.observability.SqliteTraceStore;
+import com.harnesslearn.agent.observability.TraceStore;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -33,6 +36,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
@@ -91,6 +95,17 @@ public class AgentConfig {
     }
 
     @Bean
+    public RunEventBus runEventBus() {
+        return new RunEventBus();
+    }
+
+    @Bean
+    @Primary
+    public CompositeTraceStore compositeTraceStore(SqliteTraceStore delegate, RunEventBus bus) {
+        return new CompositeTraceStore(delegate, bus);
+    }
+
+    @Bean
     public LongTermMemory longTermMemory(EmbeddingModel embed, EmbeddingStore<TextSegment> store) {
         return new VectorLongTermMemory(embed, store);
     }
@@ -135,7 +150,7 @@ public class AgentConfig {
     @Bean
     public L3Orchestrator agentLoop(@org.springframework.context.annotation.Lazy ChatLanguageModel model,
             L1ContextAssembler l1, L2ToolSystem l2,
-            L5Evaluator l5, L6Guardrail l6, SqliteTraceStore trace,
+            L5Evaluator l5, L6Guardrail l6, TraceStore trace,
             SqliteWorkingStateStore wss, SqliteArtifactStore artifacts,
             @Value("${agent.orchestrate.max-steps:20}") int maxSteps) {
         return new AgentLoop(model, l1, l2, l5, l6, maxSteps, trace, wss, artifacts);
