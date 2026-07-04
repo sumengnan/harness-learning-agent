@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** 锁住接线：注入 TraceStore 拿到的是 @Primary 的 CompositeTraceStore（装饰器已生效）。 */
 @SpringBootTest(properties = {
     "spring.datasource.url=jdbc:sqlite::memory:",
-    "agent.corpus.seed-on-startup=false"
+    "agent.ingest.enabled=false"
 })
 class TraceStoreWiringTest {
     @Autowired TraceStore traceStore;

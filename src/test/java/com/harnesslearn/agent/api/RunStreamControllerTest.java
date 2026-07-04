@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
     "spring.datasource.url=jdbc:sqlite::memory:",
-    "agent.corpus.seed-on-startup=false"
+    "agent.ingest.enabled=false"
 })
 class RunStreamControllerTest {
 
