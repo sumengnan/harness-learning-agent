@@ -65,7 +65,9 @@ public class AgentConfig {
 
     /**
      * 启动时种子语料摄取。用 {@code agent.corpus.seed-on-startup}（默认 true）门控：
-     * 关闭时此 runner 不创建，seed() 不执行、不加载 bge 嵌入模型——上下文测试据此保持轻快。
+     * 关闭时此 runner 不创建、不执行 seed()，省去 12 条种子的 embed 调用，并避免测试上下文
+     * 污染向量库。注意：bge 嵌入模型仍会在启动时被 RelevanceFilter（构造期 embed 锚点）触发加载，
+     * 本开关不影响模型加载本身。
      */
     @Bean
     @ConditionalOnProperty(name = "agent.corpus.seed-on-startup", havingValue = "true", matchIfMissing = true)
