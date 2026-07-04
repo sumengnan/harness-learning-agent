@@ -35,6 +35,10 @@ public class AgentLoop implements L3Orchestrator {
         WorkingState state = WorkingState.start(task.runId(), task.userQuery(), maxSteps);
         List<RetrievedChunk> gathered = new ArrayList<>();
         List<Artifact> evidence = new ArrayList<>();
+        // 各类失败的独立重试计数：与 state.stepsUsed()（预算/步数）解耦，
+        // 供 RecoveryPolicy 的 exhausted = attempt > maxRetries 判定「该类失败第几次重试」。
+        int verifyAttempts = 0;
+        int invalidAttempts = 0;
 
         while (!state.budgetExhausted()) {
             AssembledContext ctx = l1.assemble(task, state, gathered);
@@ -49,8 +53,8 @@ public class AgentLoop implements L3Orchestrator {
                 }
                 Verdict v = l5.verify(task, output, evidence);   // 硬约束：finish 必过 L5
                 if (v.pass()) return new AgentRun(task.runId(), output, true, "completed");
-                RecoveryDecision d = l6.onFailure(new FailureContext("verification_failed",
-                    state.stepsUsed(), v.issues().toString()));
+                RecoveryDecision d = l6.onFailure(new FailureContext(FailureTypes.VERIFICATION_FAILED,
+                    ++verifyAttempts, v.issues().toString()));
                 state.addOpenQuestion("验证未过: " + v.issues());
                 if (d.strategy() == RecoveryStrategy.ABORT || d.strategy() == RecoveryStrategy.ROLLBACK)
                     return new AgentRun(task.runId(), output, false, "verification_failed:" + d.note());
@@ -73,7 +77,7 @@ public class AgentLoop implements L3Orchestrator {
             }
 
             // 既非 finish 也无工具 = 非法/解析失败
-            RecoveryDecision d = l6.onFailure(new FailureContext("invalid_output", state.stepsUsed(), step.thought()));
+            RecoveryDecision d = l6.onFailure(new FailureContext(FailureTypes.INVALID_OUTPUT, ++invalidAttempts, step.thought()));
             if (d.strategy() == RecoveryStrategy.ABORT)
                 return new AgentRun(task.runId(), new AgentOutput("(中止)", List.copyOf(evidence)), false, "invalid_output");
             state.recordStep("非法输出，重试");

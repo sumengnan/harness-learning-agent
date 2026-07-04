@@ -58,4 +58,44 @@ class AgentLoopTest {
         AgentRun run = loop.run(new TaskSpec("run2", TaskType.QA, "q", java.util.Map.of()));
         assertThat(run.terminationReason()).contains("budget");
     }
+
+    @Test
+    void verificationFailsThenRollsBackAfterRetries() {
+        // 模型每步都给合法 final，但 L5 恒不过：前 2 次 RETRY、第 3 次 attempt=3>maxRetries=2 → ROLLBACK。
+        // 若 attempt 用全局 stepsUsed，第 1 次就会超限走错——此用例回归验证 attempt 语义修复。
+        var fake = FakeChatModel.scripted(
+            AiMessage.from("{\"thought\":\"t\",\"action\":\"final\",\"answer\":\"正文A\"}"),
+            AiMessage.from("{\"thought\":\"t\",\"action\":\"final\",\"answer\":\"正文B\"}"),
+            AiMessage.from("{\"thought\":\"t\",\"action\":\"final\",\"answer\":\"正文C\"}"));
+        L2ToolSystem l2 = new L2ToolSystem() {
+            public List<String> availableTools() { return List.of("local_retrieve"); }
+            public DistilledResult invoke(ToolCall c) { return new DistilledResult(List.of(), 0, "ok"); }
+        };
+        L5Evaluator l5 = (t,o,e) -> new Verdict(false, List.of(new Issue("grounding","无据")), 0.3);
+        var loop = new AgentLoop(fake, new DefaultL1ContextAssembler(5), l2, l5,
+            new DefaultL6Guardrail(new RecoveryPolicy(2)), 10);
+        AgentRun run = loop.run(new TaskSpec("run3", TaskType.QA, "q", java.util.Map.of()));
+
+        assertThat(run.success()).isFalse();
+        assertThat(run.terminationReason()).contains("verification_failed");
+    }
+
+    @Test
+    void emptyOutputTriggersRetry() {
+        // 第1步 final 但 answer 空白 → validateOutput 拦截并重试；第2步正常 final → 通过。
+        var fake = FakeChatModel.scripted(
+            AiMessage.from("{\"thought\":\"t\",\"action\":\"final\",\"answer\":\"   \"}"),
+            AiMessage.from("{\"thought\":\"t\",\"action\":\"final\",\"answer\":\"最终正文\"}"));
+        L2ToolSystem l2 = new L2ToolSystem() {
+            public List<String> availableTools() { return List.of("local_retrieve"); }
+            public DistilledResult invoke(ToolCall c) { return new DistilledResult(List.of(), 0, "ok"); }
+        };
+        L5Evaluator l5 = (t,o,e) -> new Verdict(true, List.of(), 1.0);
+        var loop = new AgentLoop(fake, new DefaultL1ContextAssembler(5), l2, l5,
+            new DefaultL6Guardrail(new RecoveryPolicy(2)), 10);
+        AgentRun run = loop.run(new TaskSpec("run4", TaskType.QA, "q", java.util.Map.of()));
+
+        assertThat(run.success()).isTrue();
+        assertThat(fake.callCount()).isEqualTo(2);
+    }
 }
