@@ -26,13 +26,15 @@ public class LlmConfig {
      */
     @Bean
     @Lazy
-    public ChatLanguageModel chatLanguageModel(LlmProperties props) {
+    public ChatLanguageModel chatLanguageModel(LlmProperties props,
+            java.util.List<dev.langchain4j.model.chat.listener.ChatModelListener> listeners) {
         return OpenAiChatModel.builder()
             .baseUrl(props.baseUrl())
             .apiKey(props.apiKey())
             .modelName(props.modelName())
             .temperature(props.temperature())
             .timeout(Duration.ofSeconds(60))
+            .listeners(listeners)
             .build();
     }
 
