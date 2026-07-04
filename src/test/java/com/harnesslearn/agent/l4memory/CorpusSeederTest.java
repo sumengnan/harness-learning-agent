@@ -43,4 +43,18 @@ class CorpusSeederTest {
         assertThat(n).isZero();
         assertThat(repo.chunkCount()).isZero();
     }
+
+    @Test
+    void repoReadFailureIsBestEffortReturnsZero() {
+        var ds = new SingleConnectionDataSource(
+            "jdbc:sqlite:file:memSeedFail?mode=memory&cache=shared", true);
+        ds.setDriverClassName("org.sqlite.JDBC");
+        var jt = new JdbcTemplate(ds);
+        new SchemaInitializer(jt).init();
+        var throwingRepo = new CorpusRepository(jt) {
+            @Override public int chunkCount() { throw new RuntimeException("db boom"); }
+        };
+        int n = new CorpusSeeder(throwingRepo, "/test-seed-corpus.json").seed();
+        assertThat(n).isZero();
+    }
 }

@@ -57,4 +57,22 @@ class CorpusIndexRebuilderTest {
         assertThat(n).isEqualTo(2);            // 首条抛异常被跳过
         assertThat(memory.ok).hasSize(2);
     }
+
+    @Test
+    void repoReadFailureIsBestEffortReturnsZero() {
+        var ds = new org.springframework.jdbc.datasource.SingleConnectionDataSource(
+            "jdbc:sqlite:file:memRebuildFail?mode=memory&cache=shared", true);
+        ds.setDriverClassName("org.sqlite.JDBC");
+        var jt = new org.springframework.jdbc.core.JdbcTemplate(ds);
+        new SchemaInitializer(jt).init();
+        var throwingRepo = new CorpusRepository(jt) {
+            @Override public java.util.List<CorpusChunk> allChunks() {
+                throw new RuntimeException("db boom");
+            }
+        };
+        var memory = new RecordingMemory();
+        int n = new CorpusIndexRebuilder(throwingRepo, memory).rebuild();
+        assertThat(n).isZero();
+        assertThat(memory.items).isEmpty();
+    }
 }

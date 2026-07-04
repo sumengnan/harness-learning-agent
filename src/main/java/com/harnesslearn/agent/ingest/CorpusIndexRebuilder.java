@@ -21,7 +21,13 @@ public class CorpusIndexRebuilder {
     }
 
     public int rebuild() {
-        List<CorpusChunk> chunks = repo.allChunks();
+        List<CorpusChunk> chunks;
+        try {
+            chunks = repo.allChunks();
+        } catch (RuntimeException e) {
+            log.warn("重建索引读取语料失败，跳过重建", e);
+            return 0;
+        }
         int ok = 0;
         for (CorpusChunk c : chunks) {
             try {

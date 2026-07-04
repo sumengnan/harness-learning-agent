@@ -14,7 +14,7 @@ public class IngestionScheduler {
 
     public IngestionScheduler(IngestionService service) { this.service = service; }
 
-    @Scheduled(cron = "${agent.ingest.poll-cron}")
+    @Scheduled(cron = "${agent.ingest.poll-cron:0 0 */6 * * *}")
     public void poll() {
         try {
             service.ingestAll();

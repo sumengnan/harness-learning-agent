@@ -38,7 +38,14 @@ public class CorpusSeeder {
      * @return 成功写入的条数（库非空 / 资源缺失 / 解析失败均返回 0）
      */
     public int seed() {
-        if (repo.chunkCount() > 0) {
+        int existing;
+        try {
+            existing = repo.chunkCount();
+        } catch (RuntimeException e) {
+            log.warn("种子播种检查语料库失败，跳过播种", e);
+            return 0;
+        }
+        if (existing > 0) {
             log.info("语料库非空，跳过种子播种");
             return 0;
         }
