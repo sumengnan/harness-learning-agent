@@ -21,3 +21,5 @@ agent:
     max-retries: 2
   l1:
     max-info: 12
+  corpus:
+    seed-on-startup: true
