@@ -156,6 +156,10 @@ public class AgentLoop implements L3Orchestrator {
                 safeCheckpoint(state);
                 return new AgentRun(task.runId(), new AgentOutput("(中止)", List.copyOf(evidence)), false, "invalid_output");
             }
+            String why = step.thought();
+            if (why.length() > 200) why = why.substring(0, 200);
+            state.addOpenQuestion("上一步输出无法按协议解析（" + why
+                + "）。必须严格只输出协议 JSON，勿加任何解释文字或代码块围栏。");
             state.recordStep("非法输出，重试");
         }
         // 预算耗尽：强制收尾，产出最佳可得

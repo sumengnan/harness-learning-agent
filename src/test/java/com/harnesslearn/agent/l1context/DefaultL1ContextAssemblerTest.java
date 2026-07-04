@@ -1,6 +1,7 @@
 package com.harnesslearn.agent.l1context;
 
 import com.harnesslearn.agent.domain.*;
+import com.harnesslearn.agent.l2tools.Tool;
 import dev.langchain4j.data.message.SystemMessage;
 import org.junit.jupiter.api.Test;
 import java.util.List;
@@ -26,5 +27,22 @@ class DefaultL1ContextAssemblerTest {
         assertThat(all).contains("已检索官网");                    // 任务状态
         assertThat(all).contains("高相关A").contains("高相关B");   // top-2
         assertThat(all).doesNotContain("低相关C");                 // 超预算被裁
+    }
+
+    @Test
+    void injectsOutputProtocolAndToolCatalog() {
+        Tool retrieve = new Tool() {
+            public String name() { return "local_retrieve"; }
+            public String description() { return "在本地知识库检索。参数: {query, k}"; }
+            public ToolResult execute(ToolCall call) { return ToolResult.ok("x"); }
+        };
+        var assembler = new DefaultL1ContextAssembler(5, List.of(retrieve));
+        WorkingState state = WorkingState.start("r", "g", 10);
+        AssembledContext ctx = assembler.assemble(
+            new TaskSpec("r", TaskType.QA, "q", java.util.Map.of()), state, List.of());
+
+        String all = ctx.render();
+        assertThat(all).contains("输出协议").contains("action").contains("final").contains("tool");
+        assertThat(all).contains("可用工具").contains("local_retrieve").contains("在本地知识库检索");
     }
 }

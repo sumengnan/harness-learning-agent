@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class FakeChatModel implements ChatLanguageModel {
     private final Deque<AiMessage> scripted;
     private final AtomicInteger calls = new AtomicInteger(0);
+    private final List<List<ChatMessage>> received = new java.util.ArrayList<>();
 
     private FakeChatModel(List<AiMessage> messages) {
         this.scripted = new ArrayDeque<>(messages);
@@ -40,6 +41,7 @@ public class FakeChatModel implements ChatLanguageModel {
     @Override
     public synchronized Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecs) {
         calls.incrementAndGet();
+        received.add(List.copyOf(messages));
         AiMessage next = scripted.poll();
         if (next == null) {
             next = AiMessage.from("[no more scripted responses]");
@@ -49,5 +51,10 @@ public class FakeChatModel implements ChatLanguageModel {
 
     public int callCount() {
         return calls.get();
+    }
+
+    /** 每次 generate 收到的完整消息序列（用于断言提示词内容，如重试是否回灌错误反馈）。 */
+    public List<List<ChatMessage>> receivedPrompts() {
+        return List.copyOf(received);
     }
 }
