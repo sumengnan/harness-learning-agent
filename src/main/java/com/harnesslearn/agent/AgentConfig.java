@@ -95,8 +95,8 @@ public class AgentConfig {
     }
 
     @Bean
-    public L1ContextAssembler l1(@Value("${agent.l1.max-info:12}") int maxInfo) {
-        return new DefaultL1ContextAssembler(maxInfo);
+    public L1ContextAssembler l1(@Value("${agent.l1.max-info:12}") int maxInfo, List<Tool> tools) {
+        return new DefaultL1ContextAssembler(maxInfo, tools);
     }
 
     @Bean
