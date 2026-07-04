@@ -117,8 +117,9 @@ public class AgentConfig {
     public L3Orchestrator agentLoop(@org.springframework.context.annotation.Lazy ChatLanguageModel model,
             L1ContextAssembler l1, L2ToolSystem l2,
             L5Evaluator l5, L6Guardrail l6, SqliteTraceStore trace,
+            SqliteWorkingStateStore wss, SqliteArtifactStore artifacts,
             @Value("${agent.orchestrate.max-steps:20}") int maxSteps) {
-        return new AgentLoop(model, l1, l2, l5, l6, maxSteps, trace);
+        return new AgentLoop(model, l1, l2, l5, l6, maxSteps, trace, wss, artifacts);
     }
 
     @Bean
