@@ -20,4 +20,12 @@ class DefaultSubAgentDispatcherTest {
         List<String> out = dispatcher.dispatchParallel(agent, List.of("a","boom","c"), "FALLBACK");
         assertThat(out).containsExactly("A","FALLBACK","C");   // 失败项降级为 fallback
     }
+
+    @Test
+    void dispatchReturnsResultOrFallbackOnFailure() {
+        var dispatcher = new DefaultSubAgentDispatcher();
+        var agent = new UpperAgent();
+        assertThat(dispatcher.dispatch(agent, "ok", "FB")).isEqualTo("OK");
+        assertThat(dispatcher.dispatch(agent, "boom", "FB")).isEqualTo("FB");
+    }
 }

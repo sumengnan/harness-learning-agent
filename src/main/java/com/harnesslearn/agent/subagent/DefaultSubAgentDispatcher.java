@@ -15,7 +15,9 @@ public class DefaultSubAgentDispatcher implements SubAgentDispatcher {
             List<Future<O>> futures = inputs.stream()
                 .map(in -> exec.submit(() -> agent.run(in))).toList();
             return futures.stream().map(f -> {
-                try { return f.get(); } catch (Exception e) { return fallback; }
+                try { return f.get(); }
+                catch (InterruptedException e) { Thread.currentThread().interrupt(); return fallback; }
+                catch (Exception e) { return fallback; }
             }).toList();
         }
     }
