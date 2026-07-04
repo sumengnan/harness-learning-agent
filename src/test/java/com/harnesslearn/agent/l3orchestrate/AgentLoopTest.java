@@ -5,6 +5,8 @@ import com.harnesslearn.agent.l1context.DefaultL1ContextAssembler;
 import com.harnesslearn.agent.l2tools.*;
 import com.harnesslearn.agent.l5eval.L5Evaluator;
 import com.harnesslearn.agent.l6guardrail.*;
+import com.harnesslearn.agent.observability.TraceStep;
+import com.harnesslearn.agent.observability.TraceStore;
 import com.harnesslearn.agent.support.FakeChatModel;
 import dev.langchain4j.data.message.AiMessage;
 import org.junit.jupiter.api.Test;
@@ -97,5 +99,34 @@ class AgentLoopTest {
 
         assertThat(run.success()).isTrue();
         assertThat(fake.callCount()).isEqualTo(2);
+    }
+
+    @Test
+    void appendsTraceForEachStep() {
+        // 一步工具 + 一步 final：trace 至少含 model_step/L2/L5 若干条
+        var fake = FakeChatModel.scripted(
+            AiMessage.from("""
+                {"thought":"先检索","action":"tool",
+                 "tool":{"name":"local_retrieve","arguments":{"query":"x"}}}"""),
+            AiMessage.from("""
+                {"thought":"够了","action":"final","answer":"正文"}"""));
+        L2ToolSystem l2 = new L2ToolSystem() {
+            public List<String> availableTools() { return List.of("local_retrieve"); }
+            public DistilledResult invoke(ToolCall c) {
+                return new DistilledResult(List.of(new RetrievedChunk("a","u","t",0.9)), 0, "ok");
+            }
+        };
+        L5Evaluator l5 = (t,o,e) -> new Verdict(true, List.of(), 0.9);
+        var captured = new java.util.ArrayList<TraceStep>();
+        TraceStore trace = new TraceStore() {
+            public void append(TraceStep s) { captured.add(s); }
+            public List<TraceStep> load(String runId) { return captured; }
+        };
+        var loop = new AgentLoop(fake, new DefaultL1ContextAssembler(5), l2, l5,
+            new DefaultL6Guardrail(new RecoveryPolicy(2)), 10, trace);
+        loop.run(new TaskSpec("runT", TaskType.QA, "q", java.util.Map.of()));
+
+        assertThat(captured).isNotEmpty();
+        assertThat(captured).extracting(TraceStep::layer).contains("L2","L5");
     }
 }
