@@ -129,4 +129,24 @@ class AgentLoopTest {
         assertThat(captured).isNotEmpty();
         assertThat(captured).extracting(TraceStep::layer).contains("L2","L5");
     }
+
+    @Test
+    void feedsBackParseErrorOnInvalidOutputThenSucceeds() {
+        // 第1步散文（解析失败）→ INVALID_OUTPUT 重试并回灌错误；第2步合法 final → 通过
+        var fake = FakeChatModel.scripted(
+            AiMessage.from("您好，我来帮您分析这个问题……"),
+            AiMessage.from("{\"thought\":\"改用JSON\",\"action\":\"final\",\"answer\":\"最终正文\"}"));
+        L2ToolSystem l2 = new L2ToolSystem() {
+            public List<String> availableTools() { return List.of("local_retrieve"); }
+            public DistilledResult invoke(ToolCall c) { return new DistilledResult(List.of(), 0, "ok"); }
+        };
+        L5Evaluator l5 = (t,o,e) -> new Verdict(true, List.of(), 1.0);
+        var loop = new AgentLoop(fake, new DefaultL1ContextAssembler(5), l2, l5,
+            new DefaultL6Guardrail(new RecoveryPolicy(2)), 10);
+        AgentRun run = loop.run(new TaskSpec("run5", TaskType.QA, "q", java.util.Map.of()));
+
+        assertThat(run.success()).isTrue();
+        assertThat(fake.callCount()).isEqualTo(2);
+        assertThat(fake.receivedPrompts().get(1).toString()).contains("无法按协议解析");
+    }
 }
