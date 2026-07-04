@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 class AgentLoopPersistenceTest {
 
@@ -92,7 +91,7 @@ class AgentLoopPersistenceTest {
     }
 
     @Test
-    void persistenceFailureIsBestEffortAndDoesNotCrashRun() {
+    void persistenceFailureIsBestEffortRunStillCompletes() {
         WorkingStateStore boomW = new WorkingStateStore() {
             @Override public void checkpoint(String runId, WorkingState s) { throw new RuntimeException("boom-w"); }
             @Override public WorkingState load(String runId) { throw new RuntimeException("boom-w"); }
@@ -101,9 +100,9 @@ class AgentLoopPersistenceTest {
             @Override public void put(Artifact a) { throw new RuntimeException("boom-a"); }
             @Override public List<Artifact> query(ArtifactQuery q) { return List.of(); }
         };
-        assertThatCode(() ->
-            loopWith(planner(), stubL2("c1"), boomW, boomA)
-                .run(new TaskSpec("run-boom", TaskType.SURVEY, "综述", Map.of())))
-            .doesNotThrowAnyException();
+        // 落盘全程抛异常，但 best-effort 应让主循环照常跑完 tool→final 并成功
+        AgentRun run = loopWith(planner(), stubL2("c1"), boomW, boomA)
+            .run(new TaskSpec("run-boom", TaskType.SURVEY, "综述", Map.of()));
+        assertThat(run.success()).isTrue();
     }
 }
