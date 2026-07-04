@@ -21,5 +21,12 @@ agent:
     max-retries: 2
   l1:
     max-info: 12
-  corpus:
-    seed-on-startup: true
+  ingest:
+    enabled: true
+    poll-cron: "0 0 */6 * * *"
+    chunk-max-chars: 800
+    sources:
+      - id: harness-blog
+        type: PAGE
+        url: https://www.harness.io/blog
+        tags: [harness, ci-cd]
