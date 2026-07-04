@@ -16,5 +16,13 @@ public class SchemaInitializer {
             CREATE TABLE IF NOT EXISTS trace_step(
               id TEXT PRIMARY KEY, run_id TEXT, seq INT, layer TEXT,
               event TEXT, detail TEXT, ts INTEGER)""");
+        jdbc.execute("""
+            CREATE TABLE IF NOT EXISTS corpus_seen(
+              fingerprint TEXT PRIMARY KEY, source_id TEXT, url TEXT,
+              title TEXT, first_seen_ts INTEGER)""");
+        jdbc.execute("""
+            CREATE TABLE IF NOT EXISTS corpus_chunk(
+              id TEXT PRIMARY KEY, source_id TEXT, url TEXT, title TEXT,
+              seq INTEGER, text TEXT, published_ts INTEGER, ingested_ts INTEGER)""");
     }
 }

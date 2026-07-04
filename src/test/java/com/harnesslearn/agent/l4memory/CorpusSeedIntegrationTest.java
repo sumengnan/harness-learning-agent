@@ -7,13 +7,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 生产路径端到端：seed-on-startup=true 时，corpusBootstrap 在启动时把种子摄取进
- * 与 LocalRetrieveTool 共享的同一 longTermMemory 单例，故检索非空。
- * 锁住「摄取进的 store == 检索读的 store」这条接线，防回归。
+ * 生产路径端到端：ingest.enabled=true 时，启动种子写 SQLite 后经 CorpusIndexRebuilder
+ * 重建索引，检索非空。锁住「摄取进的 store == 检索读的 store」这条接线，防回归。
  */
 @SpringBootTest(properties = {
     "spring.datasource.url=jdbc:sqlite::memory:",
-    "agent.corpus.seed-on-startup=true"
+    "agent.ingest.enabled=true",
+    "agent.ingest.poll-cron=0 0 0 * * *",
+    "agent.ingest.chunk-max-chars=800"
 })
 class CorpusSeedIntegrationTest {
 

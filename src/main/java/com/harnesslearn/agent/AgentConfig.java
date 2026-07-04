@@ -9,7 +9,6 @@ import com.harnesslearn.agent.l2tools.Tool;
 import com.harnesslearn.agent.l2tools.ToolRegistry;
 import com.harnesslearn.agent.l3orchestrate.AgentLoop;
 import com.harnesslearn.agent.l3orchestrate.L3Orchestrator;
-import com.harnesslearn.agent.l4memory.CorpusSeeder;
 import com.harnesslearn.agent.l4memory.LongTermMemory;
 import com.harnesslearn.agent.l4memory.SchemaInitializer;
 import com.harnesslearn.agent.l4memory.SqliteArtifactStore;
@@ -33,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -58,25 +56,9 @@ public class AgentConfig {
     }
 
     @Bean
+    @org.springframework.core.annotation.Order(1)
     public ApplicationRunner schemaBootstrap(SchemaInitializer schema) {
         return args -> schema.init();
-    }
-
-    @Bean
-    public CorpusSeeder corpusSeeder(LongTermMemory memory) {
-        return new CorpusSeeder(memory, "/seed-corpus.json");
-    }
-
-    /**
-     * 启动时种子语料摄取。用 {@code agent.corpus.seed-on-startup}（默认 true）门控：
-     * 关闭时此 runner 不创建、不执行 seed()，省去 12 条种子的 embed 调用，并避免测试上下文
-     * 污染向量库。注意：bge 嵌入模型仍会在启动时被 RelevanceFilter（构造期 embed 锚点）触发加载，
-     * 本开关不影响模型加载本身。
-     */
-    @Bean
-    @ConditionalOnProperty(name = "agent.corpus.seed-on-startup", havingValue = "true", matchIfMissing = true)
-    public ApplicationRunner corpusBootstrap(CorpusSeeder seeder) {
-        return args -> seeder.seed();
     }
 
     @Bean

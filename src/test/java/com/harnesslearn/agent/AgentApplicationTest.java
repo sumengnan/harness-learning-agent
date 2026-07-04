@@ -5,7 +5,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(properties = {
     "spring.datasource.url=jdbc:sqlite::memory:",
-    "agent.corpus.seed-on-startup=false"
+    "agent.ingest.enabled=false"
 })
 class AgentApplicationTest {
     @Test
