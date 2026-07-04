@@ -45,6 +45,11 @@ public class AgentLoop implements L3Orchestrator {
         this.maxSteps = maxSteps; this.trace = trace;
     }
 
+    /** best-effort 埋点：可观测性失败绝不拖垮 Agent 主流程。 */
+    private void safeAppend(TraceStep s) {
+        try { trace.append(s); } catch (RuntimeException e) { /* 观测失败不影响主循环 */ }
+    }
+
     @Override
     public AgentRun run(TaskSpec task) {
         WorkingState state = WorkingState.start(task.runId(), task.userQuery(), maxSteps);
@@ -58,7 +63,7 @@ public class AgentLoop implements L3Orchestrator {
             AssembledContext ctx = l1.assemble(task, state, gathered);
             String rawResp = model.generate(ctx.messages(), List.of()).content().text();
             ModelStep step = parser.parse(rawResp);
-            trace.append(new TraceStep(task.runId(), seq++, "L3", "model_step", step.thought()));
+            safeAppend(new TraceStep(task.runId(), seq++, "L3", "model_step", step.thought()));
 
             if (step.isFinish()) {
                 AgentOutput output = new AgentOutput(step.finalAnswer(), List.copyOf(evidence));
@@ -67,12 +72,12 @@ public class AgentLoop implements L3Orchestrator {
                     continue;
                 }
                 Verdict v = l5.verify(task, output, evidence);   // 硬约束：finish 必过 L5
-                trace.append(new TraceStep(task.runId(), seq++, "L5", "verdict",
+                safeAppend(new TraceStep(task.runId(), seq++, "L5", "verdict",
                     "pass=" + v.pass() + " issues=" + v.issues()));
                 if (v.pass()) return new AgentRun(task.runId(), output, true, "completed");
                 RecoveryDecision d = l6.onFailure(new FailureContext(FailureTypes.VERIFICATION_FAILED,
                     ++verifyAttempts, v.issues().toString()));
-                trace.append(new TraceStep(task.runId(), seq++, "L6", "recovery",
+                safeAppend(new TraceStep(task.runId(), seq++, "L6", "recovery",
                     d.strategy() + ":" + d.note()));
                 state.addOpenQuestion("验证未过: " + v.issues());
                 if (d.strategy() == RecoveryStrategy.ABORT || d.strategy() == RecoveryStrategy.ROLLBACK)
@@ -91,7 +96,7 @@ public class AgentLoop implements L3Orchestrator {
                 gathered.addAll(dr.chunks());
                 for (RetrievedChunk c : dr.chunks())
                     evidence.add(new Artifact(c.id(), task.runId(), "evidence", c.sourceUri(), c.text(), java.util.Map.of()));
-                trace.append(new TraceStep(task.runId(), seq++, "L2", "tool_invoke",
+                safeAppend(new TraceStep(task.runId(), seq++, "L2", "tool_invoke",
                     call.name() + "：" + dr.note()));
                 state.recordStep("调用 " + call.name() + "：" + dr.note());
                 continue;
@@ -99,7 +104,7 @@ public class AgentLoop implements L3Orchestrator {
 
             // 既非 finish 也无工具 = 非法/解析失败
             RecoveryDecision d = l6.onFailure(new FailureContext(FailureTypes.INVALID_OUTPUT, ++invalidAttempts, step.thought()));
-            trace.append(new TraceStep(task.runId(), seq++, "L6", "recovery", d.strategy() + ":" + d.note()));
+            safeAppend(new TraceStep(task.runId(), seq++, "L6", "recovery", d.strategy() + ":" + d.note()));
             if (d.strategy() == RecoveryStrategy.ABORT)
                 return new AgentRun(task.runId(), new AgentOutput("(中止)", List.copyOf(evidence)), false, "invalid_output");
             state.recordStep("非法输出，重试");
