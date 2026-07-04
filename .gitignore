@@ -6,3 +6,8 @@ data/
 *.iml
 .DS_Store
 .codegraph/
+frontend/node_modules/
+src/main/resources/static/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
