@@ -28,12 +28,12 @@ public class ToolsConfig {
     @Bean
     public SearchBackend tavilyBackend(@Value("${agent.tools.tavily-api-key:}") String apiKey) {
         ObjectMapper mapper = new ObjectMapper();
+        HttpClient client = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10)).build();
         return query -> {
             if (apiKey == null || apiKey.isBlank()) {
                 throw new IllegalStateException("未配置 TAVILY_API_KEY，Web 搜索不可用");
             }
-            HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10)).build();
             String body = mapper.createObjectNode()
                 .put("api_key", apiKey)
                 .put("query", query)
@@ -45,6 +45,9 @@ public class ToolsConfig {
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
             HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
+                throw new IllegalStateException("Tavily 搜索失败, HTTP " + resp.statusCode() + ": " + resp.body());
+            }
             JsonNode root = mapper.readTree(resp.body());
             StringBuilder sb = new StringBuilder();
             JsonNode results = root.path("results");
