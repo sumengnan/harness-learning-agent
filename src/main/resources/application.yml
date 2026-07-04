@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:${AGENT_DB:./data/agent.db}
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+agent:
+  llm:
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
+    api-key: ${DEEPSEEK_API_KEY:}
+    model-name: ${DEEPSEEK_MODEL:deepseek-chat}
+    temperature: 0.2
+  orchestrate:
+    max-steps: 20
+  filter:
+    relevance-threshold: 0.80
+    borderline-delta: 0.05
+  tools:
+    tavily-api-key: ${TAVILY_API_KEY:}
+  recovery:
+    max-retries: 2
+  l1:
+    max-info: 12
+  corpus:
+    seed-on-startup: true

@@ -1,0 +1,14 @@
+[
+  {"text": "自主 Agent 与固定 workflow 的区别：Agent 由模型自主决定下一步动作（工具调用或收尾），而非按预定义流程图执行；这要求显式的 think→act→observe 循环与步数上限兜底。", "uri": "https://example.com/agent-vs-workflow", "tags": ["L3", "自主决策"]},
+  {"text": "上下文工程（context engineering）：在有限上下文窗口内裁剪无关信息、结构化组织任务状态与中间产物，避免噪声稀释模型注意力，是 Agent harness 的信息边界层核心。", "uri": "https://example.com/context-engineering", "tags": ["L1", "上下文工程"]},
+  {"text": "信息边界层（L1）定义 Agent 该知道什么、不该知道什么：裁剪无关信息、注入角色与目标、把任务状态结构化为可读上下文，引导模型收敛。", "uri": "https://example.com/l1-info-boundary", "tags": ["L1"]},
+  {"text": "工具系统层（L2）负责 Agent 与外部世界交互：选择工具、控制调用时机、把工具原始返回提炼成结构化块，并经相关性过滤剔除垃圾再反馈给模型。", "uri": "https://example.com/l2-tools", "tags": ["L2"]},
+  {"text": "相关性过滤：用嵌入向量对领域质心的余弦相似度做闸门，低于阈值的内容判为垃圾剔除，避免无关资料污染大模型判断；并按向量近似去重。", "uri": "https://example.com/relevance-filter", "tags": ["L2", "过滤"]},
+  {"text": "执行编排层（L3）把多步骤任务串起来：让模型按理解目标、判断信息、分析、生成、检查的轨道推进，用 maxSteps 步数上限与 finish 必过验证作硬约束兜底。", "uri": "https://example.com/l3-orchestrate", "tags": ["L3"]},
+  {"text": "记忆与状态层（L4）独立管理当前任务状态、中间产物与长期记忆：工作状态检查点、证据 Artifact、向量化长期知识库分开存放，避免状态混淆。", "uri": "https://example.com/l4-memory", "tags": ["L4"]},
+  {"text": "长期记忆用向量库实现：把资料嵌入为向量存储，检索时按语义相似度召回最相关的若干条，供本地检索工具 local_retrieve 使用。", "uri": "https://example.com/l4-vector-memory", "tags": ["L4", "向量检索"]},
+  {"text": "评估与观测层（L5）建立独立于生成过程的验证机制：用一个不参与生成的 critic 人格，从有据可查、完整性、相关性、格式契约四个维度审查产出。", "uri": "https://example.com/l5-eval", "tags": ["L5"]},
+  {"text": "约束、校验与恢复层（L6）应对出错：预设规则拦截非法动作与空产出，失败时按类型映射到重试、回滚或降级策略，避免 Agent 无限循环或输出垃圾。", "uri": "https://example.com/l6-guardrail", "tags": ["L6"]},
+  {"text": "子 Agent（subagent）用于上下文隔离：把有界子任务（如逐来源摘要）交给独立上下文的子 Agent 处理，主 Agent 只看压缩后的要点，降低主循环上下文负担。", "uri": "https://example.com/subagent", "tags": ["subagent", "上下文隔离"]},
+  {"text": "可观测性：把 LLM 调用、工具调用、验证结论、恢复决策逐步埋点为 trace 并落盘，配合结构化 JSON 日志，使 Agent 每一步决策可回溯、可诊断。", "uri": "https://example.com/observability", "tags": ["L5", "可观测性"]}
+]
