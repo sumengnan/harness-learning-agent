@@ -9,6 +9,14 @@ Java 21 + Spring Boot 3.3.4 + langchain4j 0.35.0 的 6 层自主决策 Agent（L
 - 单个测试类：`mvn -Dtest=IntegrationSurveyTest test`
 - 打包：`mvn -q package`
 
+## 前端（子项目 D）
+
+`frontend/` 是 Vite + React + TS 单页应用，SSE 实时展示 agent 执行。
+- 开发：`cd frontend && npm run dev`（代理 `/runs*`→8080）
+- 测试：`cd frontend && npm test`（Vitest，假 EventSource，无需后端/API key）
+- 构建：`cd frontend && npm run build`（产物入 `src/main/resources/static/`，已 gitignore）
+- `mvn` 不联动 Node；后端 SSE 端点 `GET /runs/stream?type=&query=`。
+
 ## 测试约定
 
 - 单元/集成测试用内存 SQLite（`jdbc:sqlite::memory:`）+ `FakeChatModel` 测试替身，**无需真实 API key** 即可全绿。
